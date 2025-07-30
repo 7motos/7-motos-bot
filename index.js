@@ -10,7 +10,8 @@ app.post("/webhook", (req, res) => {
 
   // Captura a mensagem enviada pelo cliente
   const message = req.body.payload?.payload?.text || "";
-  const phone = req.body.payload?.payload?.sender?.phone;
+  const phone = req.body.payload?.sender?.phone;
+
 
   console.log(`📞 Cliente: ${phone} | 💬 Mensagem: ${message}`);
 
