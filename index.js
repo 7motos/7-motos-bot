@@ -7,12 +7,12 @@ app.use(bodyParser.json());
 
 // 🔑 CONFIGURAÇÕES GUPSHUP
 const GUPSHUP_API_URL = "https://api.gupshup.io/sm/api/v1/msg";
-const GUPSHUP_APP_NAME = "7motos"; // nome do app no Gupshup
-const GUPSHUP_API_KEY = "sk_e5b36b3ee92b4881a60d556a2ee58d18"; // SEU TOKEN REAL
+const GUPSHUP_APP_NAME = "7motos"; // Nome do app no Gupshup
+const GUPSHUP_API_KEY = "sk_1396921ddfc44fb4888005154a480d34"; // ✅ Cole a API Key do seu app WhatsApp aqui
 
 // ✅ Rota inicial para teste
 app.get("/", (req, res) => {
-  res.send("✅ Bot do 7 Motos rodando!");
+  res.send("✅ Bot do 7 Motos está rodando!");
 });
 
 // ✅ Webhook do Gupshup
@@ -54,7 +54,7 @@ async function sendMessage(to, text) {
       GUPSHUP_API_URL,
       new URLSearchParams({
         channel: "whatsapp",
-        source: "", // sem número de origem
+        source: "15558059677", // ✅ Número oficial do WhatsApp do 7 Motos (no formato internacional)
         destination: to,
         message: JSON.stringify({ type: "text", text }),
         "src.name": GUPSHUP_APP_NAME
