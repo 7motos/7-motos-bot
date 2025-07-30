@@ -1,83 +1,90 @@
-const express = require('express');
-const axios = require('axios');
-const bodyParser = require('body-parser');
+import express from "express";
+import axios from "axios";
+import bodyParser from "body-parser";
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-
-// 🔑 Suas chaves de API
-const GUPSHUP_API_KEY = "sk_1396921ddfc44fb4888005154a480d34"; // chave do Gupshup
-const OPENAI_API_KEY = "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"; // chave do OpenAI
-const APP_NAME = "7motos";
-
-// 📦 Middlewares
 app.use(bodyParser.json());
 
-// ✅ Webhook para receber mensagens do Gupshup
-app.post('/webhook', async (req, res) => {
+// 🔑 CHAVES
+const GUPSHUP_API_KEY = "SUA_CHAVE_GUPSHUP_AQUI"; // substitua pela chave do Gupshup
+const OPENAI_API_KEY = "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"; 
+
+// 🔗 ENDPOINT DO OPENAI (Assistants v2)
+const OPENAI_URL = "https://api.openai.com/v1/responses";
+
+app.post("/webhook", async (req, res) => {
+  try {
     console.log("📩 Mensagem recebida do Gupshup:", JSON.stringify(req.body, null, 2));
 
-    // 🔍 Verifica se é uma mensagem normal
-    if (req.body.type === "message" && req.body.payload?.type === "text") {
-        const userMessage = req.body.payload.payload.text;
-        const userPhone = req.body.payload.sender.phone;
-
-        console.log(`📞 Cliente: ${userPhone} | 💬 Mensagem: ${userMessage}`);
-
-        try {
-            // 📤 Envia a mensagem do cliente para o ChatGPT
-            const gptResponse = await axios.post(
-                "https://api.openai.com/v1/chat/completions",
-                {
-                    model: "gpt-4o-mini",
-                    messages: [
-                        { role: "system", content: "Você é Neo, um assistente educado e prestativo que ajuda os clientes do app 7 Motos a pedir corridas e entregas." },
-                        { role: "user", content: userMessage }
-                    ],
-                    max_tokens: 200
-                },
-                {
-                    headers: {
-                        "Authorization": `Bearer ${OPENAI_API_KEY}`,
-                        "Content-Type": "application/json"
-                    }
-                }
-            );
-
-            const neoReply = gptResponse.data.choices[0].message.content;
-            console.log(`🤖 Neo respondeu: ${neoReply}`);
-
-            // 📲 Envia a resposta de volta pelo WhatsApp via Gupshup
-            await axios.post(
-                "https://api.gupshup.io/wa/api/v1/msg",
-                new URLSearchParams({
-                    channel: "whatsapp",
-                    source: "551998436013",  // número do WhatsApp 7 Motos
-                    destination: userPhone,
-                    message: JSON.stringify({ type: "text", text: neoReply }),
-                    'src.name': APP_NAME
-                }),
-                {
-                    headers: {
-                        "apikey": GUPSHUP_API_KEY,
-                        "Content-Type": "application/x-www-form-urlencoded"
-                    }
-                }
-            );
-
-            console.log(`✅ Mensagem enviada para ${userPhone}: ${neoReply}`);
-        } catch (error) {
-            console.error("❌ Erro no fluxo:", error.response ? error.response.data : error.message);
-        }
+    const payload = req.body.payload;
+    if (!payload || !payload.payload || !payload.payload.text) {
+      return res.status(200).send("✅ Webhook OK, mas sem texto");
     }
 
-    res.sendStatus(200);
+    const userMessage = payload.payload.text;
+    const userPhone = payload.sender.phone;
+
+    console.log(`📞 Cliente: ${userPhone} | 💬 Mensagem: ${userMessage}`);
+
+    // 📡 ENVIA MENSAGEM PARA OPENAI (GPT)
+    const gptResponse = await axios.post(
+      OPENAI_URL,
+      {
+        model: "gpt-4o-mini", // mais rápido e barato
+        input: [
+          {
+            role: "system",
+            content: "Você é o Neo, um atendente da 7 Motos. Responda de forma educada, útil e clara."
+          },
+          {
+            role: "user",
+            content: userMessage
+          }
+        ]
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
+          "OpenAI-Beta": "assistants=v2"
+        }
+      }
+    );
+
+    // 📜 PEGA A RESPOSTA DO GPT
+    const neoReply = gptResponse.data.output_text || "Desculpe, não consegui processar sua mensagem.";
+
+    console.log("🤖 Resposta do Neo:", neoReply);
+
+    // 📤 ENVIA RESPOSTA PARA O CLIENTE VIA GUPSHUP
+    await axios.post(
+      "https://api.gupshup.io/wa/api/v1/msg",
+      new URLSearchParams({
+        channel: "whatsapp",
+        source: "SEU_NUMERO_WHATSAPP",
+        destination: userPhone,
+        message: JSON.stringify({ type: "text", text: neoReply }),
+        "src.name": "7motos"
+      }),
+      {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          apikey: GUPSHUP_API_KEY
+        }
+      }
+    );
+
+    console.log("✅ Mensagem enviada para o cliente!");
+    res.status(200).send("✅ Webhook processado com sucesso");
+  } catch (error) {
+    console.error("❌ Erro no fluxo:", error.response?.data || error.message);
+    res.status(500).send("Erro no Webhook");
+  }
 });
 
-// 🌐 Endpoint para testar se o bot está online
-app.get('/', (req, res) => {
-    res.send("🤖 Neo está online e pronto para atender os clientes do 7 Motos!");
+app.get("/", (req, res) => {
+  res.send("🚀 Servidor do Neo está rodando!");
 });
 
-// 🚀 Inicializa servidor
-app.listen(PORT, () => console.log(`🚀 Servidor rodando na porta ${PORT}`));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`✅ Servidor rodando na porta ${PORT}`));
