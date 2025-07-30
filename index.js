@@ -1,79 +1,62 @@
-const express = require("express");
-const bodyParser = require("body-parser");
-const axios = require("axios");
+const express = require('express');
+const bodyParser = require('body-parser');
+const axios = require('axios');
 
 const app = express();
 app.use(bodyParser.json());
 
-// 🔑 CONFIGURAÇÕES GUPSHUP
-const GUPSHUP_API_URL = "https://api.gupshup.io/sm/api/v1/msg";
-const GUPSHUP_APP_NAME = "7motos"; // Nome do app no Gupshup
-const GUPSHUP_API_KEY = "sk_1396921ddfc44fb4888005154a480d34"; // ✅ Cole a API Key do seu app WhatsApp aqui
+const PORT = process.env.PORT || 3000;
 
-// ✅ Rota inicial para teste
-app.get("/", (req, res) => {
-  res.send("✅ Bot do 7 Motos está rodando!");
-});
+// 🔑 SUA API KEY DA GUPSHUP
+const GUPSHUP_API_KEY = "sk_e5b36b3ee92b4881a60d556a2ee58d18";
 
-// ✅ Webhook do Gupshup
-app.post("/webhook", async (req, res) => {
+// 🚀 Função para enviar mensagens de texto
+async function sendMessage(to, message) {
   try {
-    const data = req.body;
-
-    console.log("📩 Mensagem recebida do Gupshup:", JSON.stringify(data, null, 2));
-
-    const message = data.payload?.payload?.text || "";
-    const phone = data.payload?.sender?.phone;
-
-    console.log(`📞 Cliente: ${phone} | 💬 Mensagem: ${message}`);
-
-    if (!phone || !message) return res.sendStatus(200);
-
-    // 🤖 Resposta automática simples
-    let reply = "🚀 Olá! Sou o Neo, assistente do 7 Motos. Como posso te ajudar hoje?";
-    if (message.toLowerCase().includes("corrida")) {
-      reply = "🏍️ Certo! Qual o endereço de retirada?";
-    } else if (message.toLowerCase().includes("entrega")) {
-      reply = "📦 Beleza! Qual o endereço de retirada?";
-    }
-
-    // 📤 Envia resposta ao cliente
-    await sendMessage(phone, reply);
-
-    res.sendStatus(200);
-  } catch (err) {
-    console.error("❌ Erro no webhook:", err.message);
-    res.sendStatus(500);
-  }
-});
-
-// ✅ Função que envia mensagem de volta ao WhatsApp via Gupshup
-async function sendMessage(to, text) {
-  try {
-    await axios.post(
-      GUPSHUP_API_URL,
+    const response = await axios.post(
+      'https://api.gupshup.io/sm/api/v1/msg',
       new URLSearchParams({
-        channel: "whatsapp",
-        source: "15558059677", // ✅ Número oficial do WhatsApp do 7 Motos (no formato internacional)
+        channel: 'whatsapp',
+        source: '5558059677',   // 📱 seu número de WhatsApp Business no Gupshup
         destination: to,
-        message: JSON.stringify({ type: "text", text }),
-        "src.name": GUPSHUP_APP_NAME
+        message: JSON.stringify({ type: 'text', text: message }),
+        'src.name': '7motos'
       }),
       {
         headers: {
-          apikey: GUPSHUP_API_KEY,
-          "Content-Type": "application/x-www-form-urlencoded"
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'apikey': GUPSHUP_API_KEY
         }
       }
     );
-
-    console.log(`✅ Mensagem enviada para ${to}: "${text}"`);
+    console.log('✅ Mensagem enviada:', response.data);
   } catch (error) {
-    console.error("❌ Erro ao enviar mensagem:", error.response?.data || error.message);
+    console.error('❌ Erro ao enviar mensagem:', error.response ? error.response.data : error.message);
   }
 }
 
-const PORT = process.env.PORT || 3000;
+// 📥 Webhook para receber mensagens do Gupshup
+app.post('/', async (req, res) => {
+  console.log('📩 Mensagem recebida do Gupshup:', JSON.stringify(req.body, null, 2));
+
+  if (req.body.type === 'message' && req.body.payload) {
+    const phone = req.body.payload.sender.phone;
+    const text = req.body.payload.payload.text;
+
+    console.log(`📞 Cliente: ${phone} | 💬 Mensagem: ${text}`);
+
+    // 🤖 Resposta automática do Neo
+    const respostaNeo = `Olá! Sou o Neo, assistente virtual do 7 Motos 🚀. 
+Posso te ajudar a pedir uma corrida ou fazer uma entrega. 
+Digite o que você deseja.`;
+
+    await sendMessage(phone, respostaNeo);
+  }
+
+  res.sendStatus(200);
+});
+
+// 🌍 Servidor online
 app.listen(PORT, () => {
-  console.log(`🚀 Servidor rodando na porta ${PORT}`);
+  console.log(`🚀 Servidor do Neo rodando na porta ${PORT}`);
 });
