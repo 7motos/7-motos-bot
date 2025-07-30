@@ -5,16 +5,17 @@ const axios = require("axios");
 const app = express();
 app.use(bodyParser.json());
 
+// 🔑 CONFIGURAÇÕES GUPSHUP
 const GUPSHUP_API_URL = "https://api.gupshup.io/sm/api/v1/msg";
 const GUPSHUP_APP_NAME = "7motos"; // nome do app no Gupshup
-const GUPSHUP_API_KEY = "sk_e5b36b3ee92b4881a60d556a2ee58d18"; // 🔒 substitua pelo seu token real
+const GUPSHUP_API_KEY = "sk_e5b36b3ee92b4881a60d556a2ee58d18"; // SEU TOKEN REAL
 
-// Endpoint de teste
+// ✅ Rota inicial para teste
 app.get("/", (req, res) => {
   res.send("✅ Bot do 7 Motos rodando!");
 });
 
-// Webhook do Gupshup
+// ✅ Webhook do Gupshup
 app.post("/webhook", async (req, res) => {
   try {
     const data = req.body;
@@ -28,7 +29,7 @@ app.post("/webhook", async (req, res) => {
 
     if (!phone || !message) return res.sendStatus(200);
 
-    // Resposta automática
+    // 🤖 Resposta automática simples
     let reply = "🚀 Olá! Sou o Neo, assistente do 7 Motos. Como posso te ajudar hoje?";
     if (message.toLowerCase().includes("corrida")) {
       reply = "🏍️ Certo! Qual o endereço de retirada?";
@@ -36,26 +37,27 @@ app.post("/webhook", async (req, res) => {
       reply = "📦 Beleza! Qual o endereço de retirada?";
     }
 
+    // 📤 Envia resposta ao cliente
     await sendMessage(phone, reply);
-    res.sendStatus(200);
 
+    res.sendStatus(200);
   } catch (err) {
     console.error("❌ Erro no webhook:", err.message);
     res.sendStatus(500);
   }
 });
 
-// Função que envia resposta via Gupshup
+// ✅ Função que envia mensagem de volta ao WhatsApp via Gupshup
 async function sendMessage(to, text) {
   try {
-    const res = await axios.post(
+    await axios.post(
       GUPSHUP_API_URL,
       new URLSearchParams({
         channel: "whatsapp",
-        source: "", // deixe vazio
+        source: "", // sem número de origem
         destination: to,
         message: JSON.stringify({ type: "text", text }),
-        src.name: GUPSHUP_APP_NAME
+        "src.name": GUPSHUP_APP_NAME
       }),
       {
         headers: {
