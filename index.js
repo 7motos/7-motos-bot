@@ -1,71 +1,64 @@
-// index.js – Neo Bot para WhatsApp 7 Motos
-import express from "express";
-import bodyParser from "body-parser";
-import axios from "axios";
+const express = require("express");
+const axios = require("axios");
+const bodyParser = require("body-parser");
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-
-// ✅ chave da API do Gupshup
-const GUPSHUP_API_KEY = "sk_e5b36b3ee92b4881a60d556a2ee58d18";
-
-// ✅ número oficial do WhatsApp 7 Motos (importante ter no formato correto)
-const WHATSAPP_NUMBER = "5558059677"; // <<— verifique se está correto
-
 app.use(bodyParser.json());
 
-// ✅ Rota raiz só para confirmar que está rodando
-app.get("/", (req, res) => {
-  res.send("🚀 Neo Bot do 7 Motos está rodando!");
-});
+// 🔑 API KEY do Gupshup
+const GUPSHUP_API_KEY = "sk_1396921ddfc44fb4888005154a480d34";
 
-// ✅ Webhook do Gupshup
+// 📲 Número oficial do WhatsApp 7 Motos (DO GUPSHUP)
+const WHATSAPP_NUMBER = "15558059677";
+
+// 🌍 Endpoint Gupshup
+const GUPSHUP_URL = "https://api.gupshup.io/sm/api/v1/msg";
+
+// ✅ Webhook para receber mensagens
 app.post("/webhook", async (req, res) => {
-  console.log("📩 Webhook recebido:", JSON.stringify(req.body, null, 2));
+  console.log("📩 Mensagem recebida do Gupshup:", JSON.stringify(req.body, null, 2));
 
-  // 📨 Extrai dados do payload
-  const payload = req.body.payload || {};
-  const messageType = payload.type;
-  const messageText = payload.payload?.text;
-  const sender = payload.sender?.phone;
+  if (req.body.type === "message") {
+    const message = req.body.payload.payload.text;
+    const sender = req.body.payload.sender.phone;
 
-  // ✅ Só responde mensagens de texto
-  if (messageType === "text" && messageText) {
-    console.log(`📞 Cliente: ${sender} | 💬 Mensagem: ${messageText}`);
+    console.log(`📞 Cliente: ${sender} | 💬 Mensagem: ${message}`);
 
-    // ⚡ Neo responde automaticamente para teste
-    await sendMessage(sender, "👋 Olá! Aqui é o *Neo*, assistente do 7 Motos 🚀. Como posso te ajudar hoje?");
+    // 🔥 Enviar resposta automática
+    await sendMessage(sender, `👋 Olá! Eu sou o Neo, assistente do *7 Motos*. 
+🚀 Quer pedir uma corrida, fazer uma entrega ou falar com um atendente humano?`);
   }
 
-  res.sendStatus(200);
+  res.status(200).send("ok");
 });
 
-// ✅ Função para enviar mensagens pelo Gupshup
+// ✅ Função para enviar mensagens via Gupshup
 async function sendMessage(to, text) {
   try {
     const response = await axios.post(
-      "https://api.gupshup.io/sm/api/v1/msg",
+      GUPSHUP_URL,
       new URLSearchParams({
         channel: "whatsapp",
         source: WHATSAPP_NUMBER,
         destination: to,
-        message: JSON.stringify({ type: "text", text }),
-        "src.name": "7motos"
+        message: JSON.stringify({ type: "text", text: text }),
+        'src.name': "7motos"
       }),
       {
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
-          apikey: GUPSHUP_API_KEY
-        }
+          "apikey": GUPSHUP_API_KEY,
+        },
       }
     );
-
-    console.log("✅ Mensagem enviada:", response.data);
+    console.log("✅ Mensagem enviada com sucesso:", response.data);
   } catch (error) {
-    console.error("❌ Erro ao enviar mensagem:", error.response?.data || error.message);
+    console.error("❌ Erro ao enviar mensagem:", error.response ? error.response.data : error.message);
   }
 }
 
+// 🚀 Inicializa o servidor
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);
 });
