@@ -10,14 +10,17 @@ const PORT = process.env.PORT || 3000;
 // 🔑 SUA API KEY DA GUPSHUP
 const GUPSHUP_API_KEY = "sk_e5b36b3ee92b4881a60d556a2ee58d18";
 
-// 🚀 Função para enviar mensagens de texto
+// 📱 Número do WhatsApp registrado no Gupshup (source)
+const SOURCE_NUMBER = "5558059677"; // SEM +55 antes!
+
+// 🚀 Função para enviar mensagem de texto
 async function sendMessage(to, message) {
   try {
     const response = await axios.post(
       'https://api.gupshup.io/sm/api/v1/msg',
       new URLSearchParams({
         channel: 'whatsapp',
-        source: '5558059677',   // 📱 seu número de WhatsApp Business no Gupshup
+        source: SOURCE_NUMBER,
         destination: to,
         message: JSON.stringify({ type: 'text', text: message }),
         'src.name': '7motos'
@@ -37,20 +40,23 @@ async function sendMessage(to, message) {
 
 // 📥 Webhook para receber mensagens do Gupshup
 app.post('/', async (req, res) => {
-  console.log('📩 Mensagem recebida do Gupshup:', JSON.stringify(req.body, null, 2));
+  console.log('📩 Webhook recebido:', JSON.stringify(req.body, null, 2));
 
   if (req.body.type === 'message' && req.body.payload) {
-    const phone = req.body.payload.sender.phone;
-    const text = req.body.payload.payload.text;
+    const payload = req.body.payload;
+    const phone = payload.sender.phone; // Número do cliente
+    const text = payload.payload.text; // Texto da mensagem recebida
 
     console.log(`📞 Cliente: ${phone} | 💬 Mensagem: ${text}`);
 
-    // 🤖 Resposta automática do Neo
-    const respostaNeo = `Olá! Sou o Neo, assistente virtual do 7 Motos 🚀. 
-Posso te ajudar a pedir uma corrida ou fazer uma entrega. 
-Digite o que você deseja.`;
+    // 🤖 Resposta do Neo
+    const respostaNeo = `Olá! Sou o Neo, assistente virtual do 7 Motos 🚀.
+Posso te ajudar a pedir uma corrida ou fazer uma entrega.
+O que você gostaria de fazer agora?`;
 
     await sendMessage(phone, respostaNeo);
+  } else {
+    console.log("⚠️ Webhook recebido não era uma mensagem de cliente.");
   }
 
   res.sendStatus(200);
